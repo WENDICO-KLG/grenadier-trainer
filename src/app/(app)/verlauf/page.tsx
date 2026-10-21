@@ -1,10 +1,10 @@
 import { Card, GradeBadge, PrimaryButton } from "@/components/ui";
 import { DeleteResultButton } from "@/components/delete-result-button";
-import { getResults, getUserData } from "@/lib/data";
+import { getAuthUser, getResults } from "@/lib/data";
 import { EXERCISES, formatValue, getExercise } from "@/lib/exercises";
 
 export default async function HistoryPage() {
-  const { user } = await getUserData();
+  const user = await getAuthUser();
   const results = await getResults(user.id, undefined, 200);
 
   const byDay = new Map<string, typeof results>();

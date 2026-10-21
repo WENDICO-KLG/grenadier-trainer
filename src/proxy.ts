@@ -37,9 +37,10 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() prüft das JWT lokal (asymmetrischer Schlüssel, JWKS gecacht) und
+  // erneuert abgelaufene Sessions – ohne bei jeder Navigation Supabase anzufragen.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   if (!user && !isPublic) {

@@ -7,11 +7,9 @@ import { getExercise, gradeFor, type ExerciseId } from "@/lib/exercises";
 
 async function requireUser() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  return { supabase, user };
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims?.sub) redirect("/login");
+  return { supabase, user: { id: data.claims.sub } };
 }
 
 export async function updateProfile(input: { display_name?: string | null; exam_date?: string | null }) {

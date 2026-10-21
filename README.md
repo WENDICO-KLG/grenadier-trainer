@@ -7,6 +7,7 @@ Next.js-App zur Vorbereitung auf den Sporttest der Eignungsprüfung für Grenadi
 - **Aushebungsdatum** mit Countdown und automatischer Trainingsphase
 - Verlauf aller Tests
 - **Als App installierbar** (PWA): Button «App installieren» – auf Android nativ, auf dem iPhone mit Anleitung «Zum Home-Bildschirm»
+- **Rekorde teilen** als Bildkarte (Instagram/WhatsApp) direkt nach einem neuen Rekord oder auf der Übungsseite
 - **Profilbild** (Supabase Storage) und **Freunde** per 6-stelligem Code – mit Rangliste und Vergleich der Bestleistungen
 
 ## Setup
@@ -41,6 +42,8 @@ Next.js-App zur Vorbereitung auf den Sporttest der Eignungsprüfung für Grenadi
 | `src/app/(app)/freunde/` | Freundesliste, Rangliste, Vergleich |
 | `src/components/avatar-upload.tsx` | Profilbild zuschneiden (512 px) und hochladen |
 | `src/components/install-app.tsx` | Install-Button, Anleitung iPhone/Android/Computer, Service-Worker-Registrierung |
+| `src/lib/share-card.ts` | Zeichnet die Rekord-Karte (1080×1350) im Browser |
+| `public/logo.png`, `public/icons/` | Logo (Flammen-Granate, mit ChatGPT erstellt) und App-Icons |
 | `public/exercises/` | Übungsbilder (mit ChatGPT generiert) |
 
 Quelle: VBS / Kommando Spezialkräfte – «Sporttest an der Eignungsprüfung für Grenadiere» und «Notentabelle Eignungsprüfung EP_AZ SK» (Stand 26.02.2025).

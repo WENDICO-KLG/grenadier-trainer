@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Besuchte Seiten 30 s im Client-Cache behalten → Tab-Wechsel ohne Warten.
+    // Speichern (Server Actions mit revalidatePath) leert den Cache sofort.
+    staleTimes: { dynamic: 30 },
+  },
   images: {
     // Profilbilder aus dem öffentlichen Supabase-Storage-Bucket "avatars"
     remotePatterns: supabaseUrl

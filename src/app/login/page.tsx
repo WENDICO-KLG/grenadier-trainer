@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useActionState, useState } from "react";
 import { authenticate } from "./actions";
 
@@ -10,9 +11,14 @@ export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
       <div className="mb-10">
-        <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-lime text-2xl font-black text-black">
-          G
-        </div>
+        <Image
+          src="/logo.png"
+          alt="Grenadier Trainer Logo"
+          width={72}
+          height={72}
+          preload
+          className="mb-6 rounded-[1.25rem] ring-1 ring-line"
+        />
         <h1 className="text-3xl font-semibold tracking-tight">Grenadier Trainer</h1>
         <p className="mt-2 text-muted">
           Bereite dich gezielt auf den Sporttest der Eignungsprüfung vor.

@@ -4,6 +4,7 @@ import { Pause, Play, RotateCcw, Undo2, Volume2, VolumeX, X } from "lucide-react
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { saveTestResult } from "@/app/actions";
+import { ShareRecordButton } from "@/components/share-record";
 import { ExerciseImage } from "@/components/ui";
 import { ValueInput } from "@/components/value-input";
 import { beep, cancelBeeps, getAudio, scheduleBeep, TONE, vibrate } from "@/lib/audio";
@@ -26,10 +27,12 @@ export function TestRunner({
   exerciseId,
   record,
   goal,
+  userName = null,
 }: {
   exerciseId: ExerciseId;
   record: number | null;
   goal: number | null;
+  userName?: string | null;
 }) {
   const ex = getExercise(exerciseId)!;
   const limit = ex.limit ?? 0;
@@ -268,6 +271,7 @@ export function TestRunner({
         initial={result}
         record={record}
         goal={goal}
+        userName={userName}
         onRetry={() => setStage("setup")}
       />
     );
@@ -512,12 +516,14 @@ function ResultView({
   initial,
   record,
   goal,
+  userName,
   onRetry,
 }: {
   exerciseId: ExerciseId;
   initial: number | null;
   record: number | null;
   goal: number | null;
+  userName: string | null;
   onRetry: () => void;
 }) {
   const ex = getExercise(exerciseId)!;
@@ -573,6 +579,11 @@ function ResultView({
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       </div>
 
+      {saved?.isRecord && value != null && (
+        <div className="mb-3">
+          <ShareRecordButton exerciseId={ex.id} value={value} previous={record} name={userName} isNew />
+        </div>
+      )}
       {saved ? (
         <div className="grid grid-cols-2 gap-3">
           <button onClick={onRetry} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-card font-medium">

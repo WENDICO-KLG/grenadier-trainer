@@ -4,19 +4,24 @@ import { notFound } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { RemoveFriendButton } from "@/components/friends";
 import { BandLabel, Card, ExerciseImage, GradeBadge, SectionTitle } from "@/components/ui";
-import { getExercisesFor, getFriendships, getResults, getUserData } from "@/lib/data";
+import { getAuthUser, getExercisesFor, getFriendships, getResults } from "@/lib/data";
 import { averageGrade, EXERCISES, formatValue, getExercise, gradeFor } from "@/lib/exercises";
 import { daysUntil, formatDateCH } from "@/lib/plan";
 
 export default async function FriendPage({ params }: PageProps<"/freunde/[id]">) {
   const { id } = await params;
-  const [{ user }, friendships] = await Promise.all([getUserData(), getFriendships()]);
+  const user = await getAuthUser();
+  // Alles parallel laden – RLS liefert für Nicht-Freunde ohnehin keine Daten
+  const [friendships, records, results] = await Promise.all([
+    getFriendships(),
+    getExercisesFor([user.id, id]),
+    getResults(id, undefined, 6),
+  ]);
   const friendship = friendships.find((f) => f.friend.id === id && f.status === "accepted");
   if (!friendship) notFound();
 
   const friend = friendship.friend;
   const name = friend.display_name ?? "Unbekannt";
-  const [records, results] = await Promise.all([getExercisesFor([user.id, id]), getResults(id, undefined, 6)]);
   const mine = records.get(user.id);
   const theirs = records.get(id);
 

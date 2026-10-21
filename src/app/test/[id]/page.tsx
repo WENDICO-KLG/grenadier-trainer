@@ -8,8 +8,13 @@ export default async function TestPage({ params }: PageProps<"/test/[id]">) {
   const ex = getExercise(id);
   if (!ex) notFound();
 
-  const { exercises } = await getUserData();
+  const { exercises, profile } = await getUserData();
   const data = exercises.get(ex.id);
 
-  return <TestRunner exerciseId={ex.id} record={data?.record ?? null} goal={data?.goal ?? null} />;
+  return <TestRunner
+      exerciseId={ex.id}
+      record={data?.record ?? null}
+      goal={data?.goal ?? null}
+      userName={profile.display_name}
+    />;
 }

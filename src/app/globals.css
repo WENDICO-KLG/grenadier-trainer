@@ -21,6 +21,8 @@ body {
   background: var(--color-bg);
   color: #f2f4f1;
   -webkit-tap-highlight-color: transparent;
+  /* Kein Doppeltipp-Zoom → Taps reagieren ohne Verzögerung */
+  touch-action: manipulation;
 }
 
 .tabular {

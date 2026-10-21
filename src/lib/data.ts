@@ -47,12 +47,28 @@ function toExerciseMap(rows: { exercise: string; goal: unknown; record: unknown 
   return map;
 }
 
-export const getUserData = cache(async () => {
+export interface AuthUser {
+  id: string;
+  email: string | null;
+  displayName: string | null;
+}
+
+/** Eingeloggter Benutzer aus dem lokal verifizierten JWT (kein Netzwerk-Request). */
+export const getAuthUser = cache(async (): Promise<AuthUser> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) redirect("/login");
+  return {
+    id: claims.sub,
+    email: claims.email ?? null,
+    displayName: (claims.user_metadata?.display_name as string | undefined) ?? null,
+  };
+});
+
+export const getUserData = cache(async () => {
+  const user = await getAuthUser();
+  const supabase = await createClient();
 
   const [profileRes, exercisesRes] = await Promise.all([
     supabase.from("profiles").select(PROFILE_COLUMNS).eq("id", user.id).maybeSingle(),
@@ -61,7 +77,7 @@ export const getUserData = cache(async () => {
 
   const profile: Profile = profileRes.data ?? {
     id: user.id,
-    display_name: (user.user_metadata?.display_name as string) ?? null,
+    display_name: user.displayName,
     exam_date: null,
     avatar_url: null,
     friend_code: null,
@@ -92,8 +108,8 @@ export async function getResults(
   }));
 }
 
-export async function getFriendships(): Promise<Friendship[]> {
-  const { user } = await getUserData();
+export const getFriendships = cache(async (): Promise<Friendship[]> => {
+  const user = await getAuthUser();
   const supabase = await createClient();
   const { data: rows } = await supabase
     .from("friendships")
@@ -120,7 +136,7 @@ export async function getFriendships(): Promise<Friendship[]> {
       },
     };
   });
-}
+});
 
 /** Rekorde mehrerer Benutzer (eigene + Freunde, per RLS geschützt) */
 export async function getExercisesFor(userIds: string[]) {

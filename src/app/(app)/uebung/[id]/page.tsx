@@ -2,8 +2,9 @@ import { ArrowLeft, Clock, Info, Lightbulb, Play, Shirt } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GoalRecordEditor } from "@/components/goal-record-editor";
+import { ShareRecordButton } from "@/components/share-record";
 import { Card, ExerciseImage, GradeBadge, PrimaryButton, SectionTitle } from "@/components/ui";
-import { getResults, getUserData } from "@/lib/data";
+import { getAuthUser, getResults, getUserData } from "@/lib/data";
 import { formatValue, getExercise, gradeColor, gradeFor, type ExerciseId } from "@/lib/exercises";
 
 export default async function ExercisePage({ params }: PageProps<"/uebung/[id]">) {
@@ -11,8 +12,11 @@ export default async function ExercisePage({ params }: PageProps<"/uebung/[id]">
   const ex = getExercise(id);
   if (!ex) notFound();
 
-  const { user, exercises } = await getUserData();
-  const results = await getResults(user.id, ex.id as ExerciseId, 8);
+  const user = await getAuthUser();
+  const [{ exercises, profile }, results] = await Promise.all([
+    getUserData(),
+    getResults(user.id, ex.id as ExerciseId, 8),
+  ]);
   const data = exercises.get(ex.id);
   const recordGrade = gradeFor(ex, data?.record);
   const goalGrade = gradeFor(ex, data?.goal);
@@ -41,7 +45,15 @@ export default async function ExercisePage({ params }: PageProps<"/uebung/[id]">
         <Play size={18} fill="currentColor" /> Test starten
       </PrimaryButton>
 
-      <SectionTitle>Ziel & Rekord</SectionTitle>
+      <SectionTitle
+        action={
+          data?.record != null ? (
+            <ShareRecordButton exerciseId={ex.id} value={data.record} name={profile.display_name} variant="icon" />
+          ) : undefined
+        }
+      >
+        Ziel & Rekord
+      </SectionTitle>
       <GoalRecordEditor exerciseId={ex.id} goal={data?.goal ?? null} record={data?.record ?? null} />
 
       <SectionTitle>Ausführung</SectionTitle>
