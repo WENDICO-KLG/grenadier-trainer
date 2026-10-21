@@ -19,6 +19,7 @@ Next.js-App zur Vorbereitung auf den Sporttest der Eignungsprüfung für Grenadi
    - [`supabase/schema.sql`](supabase/schema.sql)
    - [`supabase/migrations/002_avatars_friends.sql`](supabase/migrations/002_avatars_friends.sql) (Profilbilder, Freunde, Storage-Bucket)
    - [`supabase/migrations/003_comments_members.sql`](supabase/migrations/003_comments_members.sql) (Kommentare, Mitgliederliste, Einladen)
+   - [`supabase/migrations/004_security_hardening.sql`](supabase/migrations/004_security_hardening.sql) (Security-Advisor-Fixes, Spaltenrechte, Wertebereiche, Spam-Schutz)
 3. `.env.local` anlegen (Werte unter *Project Settings → API*):
 
    ```
@@ -50,3 +51,12 @@ Next.js-App zur Vorbereitung auf den Sporttest der Eignungsprüfung für Grenadi
 | `public/exercises/` | Übungsbilder (mit ChatGPT generiert) |
 
 Quelle: VBS / Kommando Spezialkräfte – «Sporttest an der Eignungsprüfung für Grenadiere» und «Notentabelle Eignungsprüfung EP_AZ SK» (Stand 26.02.2025).
+
+## Sicherheit
+
+- **Row Level Security** auf allen Tabellen; Freunde sehen nur Rekorde/Tests, Mitglieder nur Name + Bild
+- **Server Actions** prüfen jede Eingabe (Whitelists, Wertebereiche, IDs, echte Bild-Signatur) und geben keine DB-Fehler preis
+- **Datenbank-Constraints & Spaltenrechte** gelten auch bei direktem API-Zugriff (Migration 004)
+- **Spam-Schutz**: max. 5 Kommentare/Minute, 100/Tag, 30 offene Freundschaftsanfragen
+- **Security-Header**: CSP, HSTS, X-Frame-Options, nosniff, Referrer-, Permissions- und Opener-Policy
+- **Secrets**: nur Publishable Key im Client; Secret Key wird erkannt und blockiert

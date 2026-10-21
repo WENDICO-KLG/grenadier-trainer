@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { PwaSetup } from "@/components/install-app";
+import { Splash } from "@/components/splash";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="de-CH" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">
+        <Splash />
         <PwaSetup />
         {children}
       </body>

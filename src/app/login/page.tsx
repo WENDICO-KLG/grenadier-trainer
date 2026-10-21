@@ -49,7 +49,7 @@ export default function LoginPage() {
         <Field
           name="password"
           type="password"
-          placeholder="Passwort (min. 6 Zeichen)"
+          placeholder={mode === "signup" ? "Passwort (min. 8 Zeichen)" : "Passwort"}
           autoComplete={mode === "signin" ? "current-password" : "new-password"}
           required
         />
