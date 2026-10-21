@@ -1,10 +1,12 @@
 "use client";
 
-import { MessageCircle, Pause, Play, RotateCcw, Undo2, Volume2, VolumeX, X } from "lucide-react";
+import { MessageCircle, Pause, Play, RotateCcw, Satellite, Undo2, Volume2, VolumeX, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { saveTestResult } from "@/app/actions";
+import { GpsMarchView } from "@/components/gps-march-view";
 import { ShareRecordButton } from "@/components/share-record";
+import { useGpsSupported, useGpsTracking } from "@/components/use-gps-tracking";
 import { ExerciseImage } from "@/components/ui";
 import { ValueInput } from "@/components/value-input";
 import { beep, cancelBeeps, getAudio, scheduleBeep, TONE, vibrate } from "@/lib/audio";
@@ -52,6 +54,11 @@ export function TestRunner({
   const [laps, setLaps] = useState<number[]>([]);
   const [result, setResult] = useState<number | null>(null);
 
+  const gpsSupported = useGpsSupported();
+  const [gpsMode, setGpsMode] = useState(true);
+  const [gpsArmed, setGpsArmed] = useState(false);
+  const gpsOn = ex.mode === "stopwatch" && gpsSupported && gpsMode;
+
   const scheduled = useRef<(OscillatorNode | null)[]>([]);
   const wakeLock = useRef<WakeLockSentinel | null>(null);
 
@@ -73,6 +80,34 @@ export function TestRunner({
     },
     [releaseResources],
   );
+
+  // Aktuelle Uhr für den GPS-Callback (läuft ausserhalb des React-Renderzyklus)
+  const clock = useRef({ t0: 0, pausedTotal: 0, pausedAt: null as number | null });
+  useEffect(() => {
+    clock.current = { t0, pausedTotal, pausedAt };
+  }, [t0, pausedTotal, pausedAt]);
+  const getElapsed = useCallback(() => {
+    const c = clock.current;
+    return Math.max(0, ((c.pausedAt ?? performance.now()) - c.t0 - c.pausedTotal) / 1000);
+  }, []);
+
+  const gps = useGpsTracking({
+    watching: gpsOn && (gpsArmed || stage === "countdown" || stage === "running"),
+    counting: gpsOn && stage === "running" && pausedAt == null,
+    getElapsed,
+    onSplit: () => {
+      if (sound) {
+        beep(TONE.tick, 0.12);
+        setTimeout(() => beep(TONE.go, 0.2), 180);
+      }
+      vibrate([60, 60, 60]);
+    },
+    onFinish: (seconds) => {
+      if (sound) beep(TONE.end, 0.7);
+      vibrate(400);
+      finish(seconds);
+    },
+  });
 
   const repsRef = useRef(0);
   useEffect(() => {
@@ -215,6 +250,42 @@ export function TestRunner({
             </div>
           )}
 
+          {ex.mode === "stopwatch" && gpsSupported && (
+            <div className="rounded-2xl bg-card p-4">
+              <button onClick={() => setGpsMode((g) => !g)} className="flex w-full items-center justify-between text-left">
+                <span>
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <Satellite size={18} className={gpsMode ? "text-lime" : "text-muted"} /> GPS-Tracking
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted">Misst die Distanz automatisch, zeigt die Strecke auf der Karte.</span>
+                </span>
+                <span className={`h-6 w-10 shrink-0 rounded-full p-0.5 transition ${gpsMode ? "bg-lime" : "bg-card-2"}`}>
+                  <span className={`block h-5 w-5 rounded-full bg-black transition ${gpsMode ? "translate-x-4" : ""}`} />
+                </span>
+              </button>
+              {gpsMode && (
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-card-2 px-3 py-2.5 text-xs">
+                  {!gpsArmed ? (
+                    <>
+                      <span className="text-muted">Vor dem Start GPS einschalten, damit ab dem ersten Meter gemessen wird.</span>
+                      <button onClick={() => setGpsArmed(true)} className="shrink-0 rounded-lg bg-lime px-3 py-1.5 font-semibold text-black">
+                        GPS an
+                      </button>
+                    </>
+                  ) : gps.error ? (
+                    <span className="text-red-400">{gps.error}</span>
+                  ) : gps.track.hasFix && gps.track.accuracy != null && gps.track.accuracy <= 25 ? (
+                    <span className="text-lime">✓ GPS bereit · Genauigkeit ±{Math.round(gps.track.accuracy)} m</span>
+                  ) : (
+                    <span className="animate-pulse text-muted">
+                      GPS-Signal wird gesucht{gps.track.accuracy != null ? ` · ±${Math.round(gps.track.accuracy)} m` : ""}…
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <button
             onClick={() => setSound((s) => !s)}
             className="flex h-12 w-full items-center justify-between rounded-2xl bg-card px-4 text-sm"
@@ -352,7 +423,20 @@ export function TestRunner({
 
       {ex.mode === "cadence" && <CadenceView elapsed={elapsed} cadence={cadence} limit={limit} labels={ex.cadenceLabels!} grade={liveGrade} onStop={() => finish(Math.min(limit, Math.floor(elapsed)))} />}
 
-      {ex.mode === "stopwatch" && (
+      {ex.mode === "stopwatch" && gpsOn && (
+        <GpsMarchView
+          elapsed={elapsed}
+          paused={pausedAt != null}
+          track={gps.track}
+          current={gps.current}
+          error={gps.error}
+          goal={goal}
+          onPause={togglePause}
+          onFinish={() => finish(Math.round(elapsed))}
+        />
+      )}
+
+      {ex.mode === "stopwatch" && !gpsOn && (
         <StopwatchView
           elapsed={elapsed}
           paused={pausedAt != null}

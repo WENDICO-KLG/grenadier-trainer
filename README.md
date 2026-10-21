@@ -7,6 +7,7 @@ Next.js-App zur Vorbereitung auf den Sporttest der Eignungsprüfung für Grenadi
 - **Aushebungsdatum** mit Countdown und automatischer Trainingsphase
 - Verlauf aller Tests
 - **Als App installierbar** (PWA): Button «App installieren» – auf Android nativ, auf dem iPhone mit Anleitung «Zum Home-Bildschirm»
+- **GPS-Tracking beim 5-km-Marsch**: automatische Distanz (Kalman-Filter, Ausreisser-Filter), km-Splits, Auto-Stopp bei 5.00 km, Live-Karte (swisstopo); Route bleibt auf dem Gerät
 - **Tipps & Fragen** pro Übung: Kommentare mit Antworten, für alle Mitglieder sichtbar
 - **Mitglieder entdecken**: Liste aller sichtbaren Mitglieder mit Suche und Einladen per Klick (abschaltbar im Profil)
 - **Rekorde teilen** als Bildkarte (Instagram/WhatsApp) direkt nach einem neuen Rekord oder auf der Übungsseite
@@ -46,6 +47,8 @@ Next.js-App zur Vorbereitung auf den Sporttest der Eignungsprüfung für Grenadi
 | `src/app/(app)/freunde/` | Freundesliste, Rangliste, Vergleich |
 | `src/components/avatar-upload.tsx` | Profilbild zuschneiden (512 px) und hochladen |
 | `src/components/install-app.tsx` | Install-Button, Anleitung iPhone/Android/Computer, Service-Worker-Registrierung |
+| `src/lib/gps.ts` | GPS-Distanzmessung (Filter, Splits, Zielzeit) – ohne Browser-APIs, testbar |
+| `src/components/route-map.tsx` | Karte mit Strecke (Leaflet + swisstopo Landeskarte) |
 | `src/lib/share-card.ts` | Zeichnet die Rekord-Karte (1080×1350) im Browser |
 | `public/logo.png`, `public/icons/` | Logo (Flammen-Granate, mit ChatGPT erstellt) und App-Icons |
 | `public/exercises/` | Übungsbilder (mit ChatGPT generiert) |

@@ -132,3 +132,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 @media (prefers-reduced-motion: reduce) {
   .splash { display: none; }
 }
+
+/* ------------------------------------------------------------------------- */
+/* Karte (Leaflet + swisstopo)                                               */
+/* ------------------------------------------------------------------------- */
+/* Graue Landeskarte invertieren → dunkle Karte passend zum App-Design */
+.map-tiles-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.75) contrast(0.9);
+}
+.leaflet-container {
+  background: var(--color-card);
+  font-family: inherit;
+}
+.leaflet-control-attribution {
+  background: rgb(11 13 10 / 0.7) !important;
+  color: var(--color-muted) !important;
+  font-size: 10px;
+}
+.leaflet-control-attribution a {
+  color: var(--color-muted) !important;
+}

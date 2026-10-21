@@ -9,7 +9,8 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data:",
+  // Kartenkacheln der Landeskarte (swisstopo, Open Government Data)
+  "img-src 'self' blob: data: https://wmts.geo.admin.ch",
   "font-src 'self'",
   "connect-src 'self'",
   "worker-src 'self'",
@@ -31,7 +32,8 @@ const securityHeaders = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    // Standort nur für die eigene Seite (GPS-Tracking beim Marsch), sonst alles gesperrt
+    value: "camera=(), microphone=(), geolocation=(self), payment=(), usb=()",
   },
 ];
 
