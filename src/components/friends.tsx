@@ -1,9 +1,9 @@
 "use client";
 
-import { Check, Copy, Share2, UserPlus, X } from "lucide-react";
+import { Check, Copy, Search, Share2, UserPlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useSyncExternalStore, useTransition } from "react";
-import { acceptFriendRequest, removeFriendship, sendFriendRequest } from "@/app/actions";
+import { useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { acceptFriendRequest, inviteMember, removeFriendship, sendFriendRequest } from "@/app/actions";
 
 const noop = () => () => {};
 
@@ -134,5 +134,98 @@ export function RemoveFriendButton({ id, name }: { id: number; name: string }) {
     >
       Freund entfernen
     </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Mitgliederliste
+// ---------------------------------------------------------------------------
+
+export type MemberStatus = "none" | "outgoing" | "incoming" | "friend";
+
+export function MemberAction({
+  userId,
+  status,
+  friendshipId,
+}: {
+  userId: string;
+  status: MemberStatus;
+  friendshipId?: number;
+}) {
+  // Nach einer Aktion sofort anzeigen, sonst den Status vom Server verwenden
+  const [override, setLocal] = useState<MemberStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const current = override ?? status;
+
+  if (current === "friend") {
+    return (
+      <span className="flex h-9 items-center gap-1 rounded-xl px-3 text-sm font-medium text-lime">
+        <Check size={15} /> Freund
+      </span>
+    );
+  }
+  if (current === "outgoing") {
+    return <span className="flex h-9 items-center rounded-xl bg-card-2 px-3 text-sm text-muted">Angefragt</span>;
+  }
+
+  const onClick = () =>
+    start(async () => {
+      setError(null);
+      if (current === "incoming" && friendshipId) {
+        const res = await acceptFriendRequest(friendshipId);
+        if ("error" in res && res.error) return setError(res.error);
+        setLocal("friend");
+        return;
+      }
+      const res = await inviteMember(userId);
+      if ("error" in res && res.error) return setError(res.error);
+      setLocal(res.status === "accepted" ? "friend" : "outgoing");
+    });
+
+  return (
+    <div className="flex flex-col items-end">
+      <button
+        disabled={pending}
+        onClick={onClick}
+        className="flex h-9 items-center gap-1.5 rounded-xl bg-lime px-3 text-sm font-semibold text-black active:scale-95 disabled:opacity-60"
+      >
+        {current === "incoming" ? <Check size={15} /> : <UserPlus size={15} />}
+        {pending ? "…" : current === "incoming" ? "Annehmen" : "Einladen"}
+      </button>
+      {error && <span className="mt-1 text-xs text-red-400">{error}</span>}
+    </div>
+  );
+}
+
+export function MemberSearch({ initial }: { initial: string }) {
+  const router = useRouter();
+  const [value, setValue] = useState(initial);
+  const [pending, start] = useTransition();
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const update = (q: string) => {
+    setValue(q);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      start(() => router.replace(q.trim() ? `/freunde?q=${encodeURIComponent(q.trim())}` : "/freunde", { scroll: false }));
+    }, 300);
+  };
+
+  return (
+    <div className="relative">
+      <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => update(e.target.value)}
+        placeholder="Mitglieder suchen…"
+        autoComplete="off"
+        className="h-12 w-full rounded-2xl border border-line bg-card pl-11 pr-4 text-base outline-none placeholder:text-muted focus:border-lime"
+      />
+      {pending && (
+        <span className="absolute right-4 top-1/2 h-2 w-2 -translate-y-1/2 animate-pulse rounded-full bg-lime" />
+      )}
+    </div>
   );
 }

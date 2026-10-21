@@ -1,9 +1,16 @@
 import { ChevronRight, Trophy } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/avatar";
-import { AddFriendForm, FriendCodeCard, RequestActions } from "@/components/friends";
+import {
+  AddFriendForm,
+  FriendCodeCard,
+  MemberAction,
+  MemberSearch,
+  RequestActions,
+  type MemberStatus,
+} from "@/components/friends";
 import { Card, GradeBadge, SectionTitle } from "@/components/ui";
-import { getExercisesFor, getFriendships, getUserData } from "@/lib/data";
+import { getExercisesFor, getFriendships, getUserData, listMembers } from "@/lib/data";
 import { averageGrade, EXERCISES, gradeFor, type ExerciseId } from "@/lib/exercises";
 import type { UserExercise } from "@/lib/data";
 import { daysUntil } from "@/lib/plan";
@@ -13,8 +20,14 @@ function prognosis(exercises: Map<ExerciseId, UserExercise> | undefined) {
   return { avg: averageGrade(grades), tested: grades.filter((g) => g != null).length };
 }
 
-export default async function FriendsPage() {
-  const [{ user, profile }, friendships] = await Promise.all([getUserData(), getFriendships()]);
+export default async function FriendsPage({ searchParams }: PageProps<"/freunde">) {
+  const q = (await searchParams).q;
+  const search = typeof q === "string" ? q : "";
+  const [{ user, profile }, friendships, { members, available: membersAvailable }] = await Promise.all([
+    getUserData(),
+    getFriendships(),
+    listMembers(search),
+  ]);
   const friends = friendships.filter((f) => f.status === "accepted");
   const incoming = friendships.filter((f) => f.status === "pending" && f.incoming);
   const outgoing = friendships.filter((f) => f.status === "pending" && !f.incoming);
@@ -34,6 +47,61 @@ export default async function FriendsPage() {
     .map((p) => ({ ...p, ...prognosis(records.get(p.id)) }))
     .sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0));
 
+  // Beziehung zu jedem Mitglied für den passenden Button
+  const relation = new Map<string, { status: MemberStatus; id: number }>();
+  for (const f of friendships) {
+    const status: MemberStatus = f.status === "accepted" ? "friend" : f.incoming ? "incoming" : "outgoing";
+    relation.set(f.friend.id, { status, id: f.id });
+  }
+
+  const memberSection = (
+    <>
+      <SectionTitle>Mitglieder entdecken</SectionTitle>
+      {!membersAvailable ? (
+        <Card className="text-sm text-muted">
+          Die Mitgliederliste ist noch nicht aktiviert – die Datenbank-Migration <code>003_comments_members.sql</code>{" "}
+          fehlt.
+        </Card>
+      ) : (
+        <>
+          <MemberSearch initial={search} />
+          {members.length === 0 ? (
+            <Card className="mt-2 text-center text-sm text-muted">
+              {search ? `Niemand gefunden für «${search}».` : "Noch keine anderen Mitglieder – teile die App mit Kollegen!"}
+            </Card>
+          ) : (
+            <Card className="mt-2 divide-y divide-line/60 p-0">
+              {members.map((m) => {
+                const rel = relation.get(m.id);
+                const content = (
+                  <>
+                    <Avatar url={m.avatar_url} name={m.display_name} size={44} />
+                    <p className="min-w-0 flex-1 truncate font-medium">{m.display_name}</p>
+                  </>
+                );
+                return (
+                  <div key={m.id} className="flex items-center gap-3 px-4 py-3">
+                    {rel?.status === "friend" ? (
+                      <Link href={`/freunde/${m.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+                        {content}
+                      </Link>
+                    ) : (
+                      content
+                    )}
+                    <MemberAction userId={m.id} status={rel?.status ?? "none"} friendshipId={rel?.id} />
+                  </div>
+                );
+              })}
+            </Card>
+          )}
+          <p className="mt-2 px-1 text-xs text-muted">
+            Du willst hier nicht erscheinen? Das kannst du im Profil ausschalten.
+          </p>
+        </>
+      )}
+    </>
+  );
+
   return (
     <div>
       <header className="mb-6">
@@ -41,12 +109,6 @@ export default async function FriendsPage() {
         <p className="mt-1 text-muted">Trainiert zusammen und vergleicht eure Bestleistungen.</p>
       </header>
 
-      <Card>
-        <FriendCodeCard code={profile.friend_code} />
-        <div className="my-5 h-px bg-line/60" />
-        <p className="mb-2 text-sm font-medium">Freund hinzufügen</p>
-        <AddFriendForm />
-      </Card>
 
       {incoming.length > 0 && (
         <>
@@ -63,11 +125,13 @@ export default async function FriendsPage() {
         </>
       )}
 
+      {friends.length === 0 && memberSection}
+
       <SectionTitle>Rangliste</SectionTitle>
       {friends.length === 0 ? (
         <Card className="text-center">
           <p className="font-medium">Noch keine Freunde</p>
-          <p className="mt-1 text-sm text-muted">Teile deinen Code – sobald jemand annimmt, seht ihr gegenseitig eure Rekorde.</p>
+          <p className="mt-1 text-sm text-muted">Lade oben jemanden ein – sobald er annimmt, seht ihr gegenseitig eure Rekorde.</p>
         </Card>
       ) : (
         <div className="space-y-2">
@@ -109,6 +173,16 @@ export default async function FriendsPage() {
           })}
         </div>
       )}
+
+      {friends.length > 0 && memberSection}
+
+      <SectionTitle>Per Code</SectionTitle>
+      <Card>
+        <FriendCodeCard code={profile.friend_code} />
+        <div className="my-5 h-px bg-line/60" />
+        <p className="mb-2 text-sm font-medium">Code eines Freundes eingeben</p>
+        <AddFriendForm />
+      </Card>
 
       {outgoing.length > 0 && (
         <>

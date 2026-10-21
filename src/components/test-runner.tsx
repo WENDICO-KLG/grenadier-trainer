@@ -1,6 +1,6 @@
 "use client";
 
-import { Pause, Play, RotateCcw, Undo2, Volume2, VolumeX, X } from "lucide-react";
+import { MessageCircle, Pause, Play, RotateCcw, Undo2, Volume2, VolumeX, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { saveTestResult } from "@/app/actions";
@@ -186,6 +186,13 @@ export function TestRunner({
             </li>
           ))}
         </ul>
+
+        <Link
+          href={`/uebung/${ex.id}#kommentare`}
+          className="mt-4 flex items-center gap-2 text-sm font-medium text-lime"
+        >
+          <MessageCircle size={16} /> Tipps & Fragen der Community
+        </Link>
 
         <div className="mt-6 space-y-3">
           {ex.mode === "cadence" && (

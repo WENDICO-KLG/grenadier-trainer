@@ -1,10 +1,11 @@
 import { ArrowLeft, Clock, Info, Lightbulb, Play, Shirt } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CommentsSection } from "@/components/comments";
 import { GoalRecordEditor } from "@/components/goal-record-editor";
 import { ShareRecordButton } from "@/components/share-record";
 import { Card, ExerciseImage, GradeBadge, PrimaryButton, SectionTitle } from "@/components/ui";
-import { getAuthUser, getResults, getUserData } from "@/lib/data";
+import { getAuthUser, getComments, getResults, getUserData } from "@/lib/data";
 import { formatValue, getExercise, gradeColor, gradeFor, type ExerciseId } from "@/lib/exercises";
 
 export default async function ExercisePage({ params }: PageProps<"/uebung/[id]">) {
@@ -13,10 +14,12 @@ export default async function ExercisePage({ params }: PageProps<"/uebung/[id]">
   if (!ex) notFound();
 
   const user = await getAuthUser();
-  const [{ exercises, profile }, results] = await Promise.all([
+  const [{ exercises, profile }, results, { comments, available: commentsAvailable }] = await Promise.all([
     getUserData(),
     getResults(user.id, ex.id as ExerciseId, 8),
+    getComments(ex.id as ExerciseId),
   ]);
+  const commentCount = comments.reduce((n, c) => n + 1 + c.replies.length, 0);
   const data = exercises.get(ex.id);
   const recordGrade = gradeFor(ex, data?.record);
   const goalGrade = gradeFor(ex, data?.goal);
@@ -139,6 +142,18 @@ export default async function ExercisePage({ params }: PageProps<"/uebung/[id]">
           Hinterlegt = dein Rekord · Umrandet = dein Ziel. Bestanden ab Ø 3.60 über alle Disziplinen.
         </p>
       </Card>
+
+      <div id="kommentare" className="scroll-mt-4">
+        <SectionTitle>
+          Tipps & Fragen{commentCount > 0 ? ` · ${commentCount}` : ""}
+        </SectionTitle>
+      </div>
+      <CommentsSection
+        exerciseId={ex.id}
+        comments={comments}
+        currentUserId={user.id}
+        available={commentsAvailable}
+      />
     </div>
   );
 }

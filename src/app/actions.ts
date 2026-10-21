@@ -183,3 +183,52 @@ export async function removeFriendship(id: number) {
   revalidatePath("/freunde");
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Kommentare
+// ---------------------------------------------------------------------------
+
+export async function addComment(exercise: ExerciseId, body: string, parentId?: number | null) {
+  if (!getExercise(exercise)) return { error: "Unbekannte Übung" };
+  const text = body.trim();
+  if (!text) return { error: "Bitte etwas schreiben." };
+  if (text.length > 1000) return { error: "Maximal 1000 Zeichen." };
+
+  const { supabase, user } = await requireUser();
+  const { error } = await supabase
+    .from("exercise_comments")
+    .insert({ exercise, body: text, parent_id: parentId ?? null, user_id: user.id });
+  if (error) return { error: "Kommentar konnte nicht gespeichert werden." };
+  revalidatePath(`/uebung/${exercise}`);
+  return { ok: true };
+}
+
+export async function deleteComment(id: number, exercise: ExerciseId) {
+  const { supabase, user } = await requireUser();
+  const { error } = await supabase.from("exercise_comments").delete().eq("id", id).eq("user_id", user.id);
+  if (error) return { error: error.message };
+  revalidatePath(`/uebung/${exercise}`);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Mitglieder einladen & Sichtbarkeit
+// ---------------------------------------------------------------------------
+
+export async function inviteMember(userId: string) {
+  const { supabase } = await requireUser();
+  const { data, error } = await supabase.rpc("send_friend_request_to", { target: userId });
+  if (error) return { error: error.message };
+  revalidatePath("/freunde");
+  const status = String(data);
+  const ok = status === "requested" || status === "accepted";
+  return ok ? { ok: true, status, message: FRIEND_MESSAGES[status] } : { error: FRIEND_MESSAGES[status] ?? status };
+}
+
+export async function setDiscoverable(discoverable: boolean) {
+  const { supabase, user } = await requireUser();
+  const { error } = await supabase.from("profiles").update({ discoverable }).eq("id", user.id);
+  if (error) return { error: error.message };
+  revalidatePath("/profil");
+  return { ok: true };
+}

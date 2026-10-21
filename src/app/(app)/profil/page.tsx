@@ -1,14 +1,16 @@
 import { CalendarDays, LogOut, Mail } from "lucide-react";
 import { signOut } from "@/app/actions";
 import { AvatarUpload } from "@/components/avatar-upload";
+import { DiscoverableToggle } from "@/components/discoverable-toggle";
 import { ExamDateForm } from "@/components/exam-date-form";
 import { InstallAppButton } from "@/components/install-app";
 import { NameForm } from "@/components/name-form";
 import { Card, SectionTitle } from "@/components/ui";
-import { getUserData } from "@/lib/data";
+import { getDiscoverable, getUserData } from "@/lib/data";
 
 export default async function ProfilePage() {
   const { user, profile } = await getUserData();
+  const discoverable = await getDiscoverable(user.id);
 
   return (
     <div>
@@ -24,6 +26,15 @@ export default async function ProfilePage() {
           <Mail size={14} /> {user.email}
         </p>
       </Card>
+
+      {discoverable != null && (
+        <>
+          <SectionTitle>Privatsphäre</SectionTitle>
+          <Card>
+            <DiscoverableToggle initial={discoverable} />
+          </Card>
+        </>
+      )}
 
       <SectionTitle>Aushebung</SectionTitle>
       <Card>

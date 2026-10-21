@@ -152,3 +152,93 @@ export async function getExercisesFor(userIds: string[]) {
   }
   return result;
 }
+
+// ---------------------------------------------------------------------------
+// Kommentare pro Übung
+// ---------------------------------------------------------------------------
+
+export interface CommentAuthor {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
+export interface ExerciseComment {
+  id: number;
+  userId: string;
+  body: string;
+  createdAt: string;
+  timeAgo: string;
+  author: CommentAuthor | null;
+  replies: ExerciseComment[];
+}
+
+const rtf = new Intl.RelativeTimeFormat("de-CH", { numeric: "auto" });
+
+function timeAgo(iso: string, now = Date.now()): string {
+  const diff = (new Date(iso).getTime() - now) / 1000;
+  const abs = Math.abs(diff);
+  if (abs < 60) return "gerade eben";
+  if (abs < 3600) return rtf.format(Math.round(diff / 60), "minute");
+  if (abs < 86400) return rtf.format(Math.round(diff / 3600), "hour");
+  if (abs < 86400 * 7) return rtf.format(Math.round(diff / 86400), "day");
+  return new Date(iso).toLocaleDateString("de-CH", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/** Kommentare einer Übung als Baum: neueste Hauptkommentare zuerst, Antworten chronologisch. */
+export async function getComments(
+  exercise: ExerciseId,
+): Promise<{ comments: ExerciseComment[]; available: boolean }> {
+  const supabase = await createClient();
+  const { data: rows, error } = await supabase
+    .from("exercise_comments")
+    .select("id, user_id, parent_id, body, created_at")
+    .eq("exercise", exercise)
+    .order("created_at", { ascending: false })
+    .limit(300);
+  if (error) return { comments: [], available: false };
+  if (!rows?.length) return { comments: [], available: true };
+
+  const ids = [...new Set(rows.map((r) => r.user_id as string))];
+  const { data: authors } = await supabase.rpc("comment_authors", { ids });
+  const byId = new Map(((authors ?? []) as CommentAuthor[]).map((a) => [a.id, a]));
+
+  const now = Date.now();
+  const toComment = (r: (typeof rows)[number]): ExerciseComment => ({
+    id: r.id,
+    userId: r.user_id,
+    body: r.body,
+    createdAt: r.created_at,
+    timeAgo: timeAgo(r.created_at, now),
+    author: byId.get(r.user_id) ?? null,
+    replies: [],
+  });
+
+  const roots = rows.filter((r) => r.parent_id == null).map(toComment);
+  const rootById = new Map(roots.map((c) => [c.id, c]));
+  for (const r of [...rows].reverse()) {
+    if (r.parent_id != null) rootById.get(r.parent_id)?.replies.push(toComment(r));
+  }
+  return { comments: roots, available: true };
+}
+
+// ---------------------------------------------------------------------------
+// Mitgliederliste
+// ---------------------------------------------------------------------------
+
+export async function listMembers(
+  search?: string,
+): Promise<{ members: CommentAuthor[]; available: boolean }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_members", { search: search ?? null, max_rows: 50 });
+  if (error) return { members: [], available: false };
+  return { members: (data ?? []) as CommentAuthor[], available: true };
+}
+
+/** Sichtbarkeit in der Mitgliederliste (Spalte kommt aus Migration 003). */
+export async function getDiscoverable(userId: string): Promise<boolean | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("profiles").select("discoverable").eq("id", userId).maybeSingle();
+  if (error) return null;
+  return data?.discoverable ?? true;
+}

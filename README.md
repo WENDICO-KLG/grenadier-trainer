@@ -7,6 +7,8 @@ Next.js-App zur Vorbereitung auf den Sporttest der Eignungsprüfung für Grenadi
 - **Aushebungsdatum** mit Countdown und automatischer Trainingsphase
 - Verlauf aller Tests
 - **Als App installierbar** (PWA): Button «App installieren» – auf Android nativ, auf dem iPhone mit Anleitung «Zum Home-Bildschirm»
+- **Tipps & Fragen** pro Übung: Kommentare mit Antworten, für alle Mitglieder sichtbar
+- **Mitglieder entdecken**: Liste aller sichtbaren Mitglieder mit Suche und Einladen per Klick (abschaltbar im Profil)
 - **Rekorde teilen** als Bildkarte (Instagram/WhatsApp) direkt nach einem neuen Rekord oder auf der Übungsseite
 - **Profilbild** (Supabase Storage) und **Freunde** per 6-stelligem Code – mit Rangliste und Vergleich der Bestleistungen
 
@@ -16,6 +18,7 @@ Next.js-App zur Vorbereitung auf den Sporttest der Eignungsprüfung für Grenadi
 2. Im Supabase **SQL Editor** nacheinander ausführen:
    - [`supabase/schema.sql`](supabase/schema.sql)
    - [`supabase/migrations/002_avatars_friends.sql`](supabase/migrations/002_avatars_friends.sql) (Profilbilder, Freunde, Storage-Bucket)
+   - [`supabase/migrations/003_comments_members.sql`](supabase/migrations/003_comments_members.sql) (Kommentare, Mitgliederliste, Einladen)
 3. `.env.local` anlegen (Werte unter *Project Settings → API*):
 
    ```
