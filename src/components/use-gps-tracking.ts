@@ -20,20 +20,21 @@ function gpsErrorText(err: GeolocationPositionError): string {
 /**
  * Verfolgt die Position und misst die Distanz.
  * - `watching`: GPS ist an (schon im Countdown, damit beim Start ein Fix da ist)
- * - `counting`: Distanz wird gezählt (läuft und nicht pausiert)
+ * - `isCounting()`: zählt gerade Distanz? Wird bei jeder Position direkt an der Uhr geprüft,
+ *   damit das Zählen nicht davon abhängt, wann die Anzeige von "Countdown" auf "Läuft" wechselt
  * Die Distanz kommt aus der reinen Logik in `GpsTracker` (Kalman-Filter, Ausreisser-Filter).
  */
 export function useGpsTracking({
   watching,
-  counting,
+  isCounting,
   getElapsed,
   onSplit,
   onFinish,
 }: {
   watching: boolean;
-  counting: boolean;
+  isCounting: () => boolean;
   getElapsed: () => number;
-  onSplit?: (km: number) => void;
+  onSplit?: (km: number, splitSeconds: number, totalSeconds: number) => void;
   onFinish?: (seconds: number) => void;
 }) {
   const [track, setTrack] = useState<TrackState>(initialTrack);
@@ -41,9 +42,9 @@ export function useGpsTracking({
   const [error, setError] = useState<string | null>(null);
 
   // Aktuelle Werte für den GPS-Callback (der nur einmal registriert wird)
-  const latest = useRef({ counting, getElapsed, onSplit, onFinish });
+  const latest = useRef({ isCounting, getElapsed, onSplit, onFinish });
   useEffect(() => {
-    latest.current = { counting, getElapsed, onSplit, onFinish };
+    latest.current = { isCounting, getElapsed, onSplit, onFinish };
   });
 
   useEffect(() => {
@@ -58,9 +59,9 @@ export function useGpsTracking({
         const accuracy = pos.coords.accuracy;
         setError(null);
         setCurrent(point);
-        const { counting: isCounting, getElapsed: elapsed, onSplit: split, onFinish: fin } = latest.current;
+        const { isCounting: counting, getElapsed: elapsed, onSplit: split, onFinish: fin } = latest.current;
 
-        if (!isCounting) {
+        if (!counting()) {
           // Countdown oder Pause: Position zeigen, aber keine Distanz zählen
           tracker.resetAnchor();
           setTrack((t) => ({ ...t, accuracy, hasFix: accuracy <= 25 || t.hasFix }));
@@ -69,7 +70,12 @@ export function useGpsTracking({
 
         const next = tracker.add(point, accuracy, elapsed());
         setTrack(next);
-        while (splits < next.splits.length) split?.(++splits);
+        while (splits < next.splits.length) {
+          const total = next.splits[splits];
+          const previous = splits > 0 ? next.splits[splits - 1] : 0;
+          splits++;
+          split?.(splits, total - previous, total);
+        }
         if (next.finishedAt != null && !done) {
           done = true;
           fin?.(Math.round(next.finishedAt));

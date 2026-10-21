@@ -8,6 +8,7 @@ Next.js-App zur Vorbereitung auf den Sporttest der Eignungsprüfung für Grenadi
 - Verlauf aller Tests
 - **Als App installierbar** (PWA): Button «App installieren» – auf Android nativ, auf dem iPhone mit Anleitung «Zum Home-Bildschirm»
 - **GPS-Tracking beim 5-km-Marsch**: automatische Distanz (Kalman-Filter, Ausreisser-Filter), km-Splits, Auto-Stopp bei 5.00 km, Live-Karte (swisstopo); Route bleibt auf dem Gerät
+- **Taschen-Modus**: schwarzer Bildschirm (OLED spart Strom), Touch-Sperre (Entsperren durch 1.5 s Halten), Sprachansagen bei jedem Kilometer und im Ziel – GPS läuft weiter
 - **Tipps & Fragen** pro Übung: Kommentare mit Antworten, für alle Mitglieder sichtbar
 - **Mitglieder entdecken**: Liste aller sichtbaren Mitglieder mit Suche und Einladen per Klick (abschaltbar im Profil)
 - **Rekorde teilen** als Bildkarte (Instagram/WhatsApp) direkt nach einem neuen Rekord oder auf der Übungsseite

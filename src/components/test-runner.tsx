@@ -10,6 +10,7 @@ import { useGpsSupported, useGpsTracking } from "@/components/use-gps-tracking";
 import { ExerciseImage } from "@/components/ui";
 import { ValueInput } from "@/components/value-input";
 import { beep, cancelBeeps, getAudio, scheduleBeep, TONE, vibrate } from "@/lib/audio";
+import { speak, spokenTime, unlockSpeech } from "@/lib/speech";
 import {
   formatTime,
   formatValue,
@@ -86,6 +87,16 @@ export function TestRunner({
   useEffect(() => {
     clock.current = { t0, pausedTotal, pausedAt };
   }, [t0, pausedTotal, pausedAt]);
+  const stageRef = useRef(stage);
+  useEffect(() => {
+    stageRef.current = stage;
+  }, [stage]);
+  // Zählt ab dem Startsignal laut Uhr – unabhängig davon, wann die Anzeige umschaltet
+  const isCounting = useCallback(() => {
+    const c = clock.current;
+    const st = stageRef.current;
+    return (st === "countdown" || st === "running") && c.pausedAt == null && performance.now() >= c.t0;
+  }, []);
   const getElapsed = useCallback(() => {
     const c = clock.current;
     return Math.max(0, ((c.pausedAt ?? performance.now()) - c.t0 - c.pausedTotal) / 1000);
@@ -93,17 +104,25 @@ export function TestRunner({
 
   const gps = useGpsTracking({
     watching: gpsOn && (gpsArmed || stage === "countdown" || stage === "running"),
-    counting: gpsOn && stage === "running" && pausedAt == null,
+    isCounting: () => gpsOn && isCounting(),
     getElapsed,
-    onSplit: () => {
+    onSplit: (km, split, total) => {
       if (sound) {
         beep(TONE.tick, 0.12);
         setTimeout(() => beep(TONE.go, 0.2), 180);
+        // Ansage, damit man im Taschen-Modus nicht aufs Display schauen muss
+        setTimeout(
+          () => speak(`Kilometer ${km}. Zeit ${spokenTime(total)}. Letzter Kilometer ${spokenTime(split)}.`),
+          600,
+        );
       }
       vibrate([60, 60, 60]);
     },
     onFinish: (seconds) => {
-      if (sound) beep(TONE.end, 0.7);
+      if (sound) {
+        beep(TONE.end, 0.7);
+        setTimeout(() => speak(`Ziel! Fünf Kilometer in ${spokenTime(seconds)}.`), 800);
+      }
       vibrate(400);
       finish(seconds);
     },
@@ -137,6 +156,7 @@ export function TestRunner({
 
   const start = async () => {
     const audio = sound ? getAudio() : null;
+    if (sound && gpsOn) unlockSpeech(); // iOS: Sprachausgabe im Tipp freischalten
     const startPerf = performance.now() + COUNTDOWN_MS;
     setT0(startPerf);
     setNow(performance.now());
@@ -431,6 +451,7 @@ export function TestRunner({
           current={gps.current}
           error={gps.error}
           goal={goal}
+          sound={sound}
           onPause={togglePause}
           onFinish={() => finish(Math.round(elapsed))}
         />

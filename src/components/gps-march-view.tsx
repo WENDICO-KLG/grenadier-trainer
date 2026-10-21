@@ -1,7 +1,10 @@
 "use client";
 
-import { Pause, Play, Satellite } from "lucide-react";
+import { Moon, Pause, Play, Satellite } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useState } from "react";
+import { PocketMode } from "@/components/pocket-mode";
+import { primeSpeech } from "@/lib/speech";
 import { formatTime, getExercise, gradeColor, gradeFor } from "@/lib/exercises";
 import { TARGET_DISTANCE, type GpsPoint, type TrackState } from "@/lib/gps";
 
@@ -19,6 +22,7 @@ export function GpsMarchView({
   current,
   error,
   goal,
+  sound,
   onPause,
   onFinish,
 }: {
@@ -28,10 +32,12 @@ export function GpsMarchView({
   current: GpsPoint | null;
   error: string | null;
   goal: number | null;
+  sound: boolean;
   onPause: () => void;
   onFinish: () => void;
 }) {
   const ex = getExercise("marsch")!;
+  const [pocket, setPocket] = useState(false);
   const km = track.distance / 1000;
   const remaining = TARGET_DISTANCE - track.distance;
   const avgPace = track.distance >= 100 ? (elapsed / track.distance) * 1000 : null;
@@ -90,13 +96,24 @@ export function GpsMarchView({
       </div>
       {error && <p className="mt-1 px-1 text-xs text-red-400">{error}</p>}
 
-      <div className="mt-3 grid grid-cols-[1fr_2fr] gap-3">
+      <div className="mt-3 grid grid-cols-[1fr_1fr_2fr] gap-3">
         <button
           onClick={onPause}
           className="flex h-16 items-center justify-center rounded-2xl bg-card"
           aria-label={paused ? "Weiter" : "Pause"}
         >
           {paused ? <Play size={22} /> : <Pause size={22} />}
+        </button>
+        <button
+          onClick={() => {
+            if (sound) primeSpeech("Taschen-Modus aktiv. Zum Entsperren gedrückt halten.");
+            setPocket(true);
+          }}
+          className="flex h-16 flex-col items-center justify-center gap-0.5 rounded-2xl bg-card text-[11px] font-medium"
+          aria-label="Taschen-Modus"
+        >
+          <Moon size={20} className="text-lime" />
+          Tasche
         </button>
         <button
           onClick={() => {
@@ -109,8 +126,17 @@ export function GpsMarchView({
         </button>
       </div>
       <p className="mt-2 text-center text-[11px] text-muted">
-        Bildschirm anlassen – bei gesperrtem Handy pausiert das GPS. Stoppt automatisch bei 5.00 km.
+        Nicht sperren – für die Tasche den Taschen-Modus nutzen. Stoppt automatisch bei 5.00 km.
       </p>
+
+      {pocket && (
+        <PocketMode
+          distanceKm={km}
+          elapsed={elapsed}
+          gpsWeak={error != null || track.accuracy == null || track.accuracy > 25}
+          onUnlock={() => setPocket(false)}
+        />
+      )}
     </>
   );
 }
