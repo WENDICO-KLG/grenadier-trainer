@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "grenadier-trainer",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["-u", "HTTPS_PROXY", "-u", "https_proxy", "-u", "HTTP_PROXY", "-u", "http_proxy", "npm", "run", "dev"],
+      "port": 3000
+    }
+  ]
+}
